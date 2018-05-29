@@ -10,14 +10,14 @@ Example Usage
 
 $ ./ndsplus --backup test1.out\
 Original NDS Adapter detected.\
-Detected save: 64 KiB EEPROM\
+Detected save: 64 KiB FLASH\
 Backing up savegame...\
 100%   \
 Backup to test1.out completed!\
 \
 $ ./ndsplus --restore test1.out \
 Original NDS Adapter detected.\
-Detected save: 64 KiB EEPROM\
+Detected save: 64 KiB FLASH\
 Restoring savegame...\
 100%   \
 Restore from file test1.out completed!
@@ -31,7 +31,7 @@ For this example, the size is correctly detected as 256 KiB, and 4 copies are wr
 \
 $ ./ndsplus -s 20 --backup ash.out\
 Original NDS Adapter detected.\
-Detected save: 256 KiB EEPROM\
+Detected save: 256 KiB FLASH\
 Overriding to: 1024 KiB\
 Backing up savegame...\
 100%   \
