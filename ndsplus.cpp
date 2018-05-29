@@ -239,6 +239,10 @@ int main(int argc, char **argv){
   std::string backup_filename;
   std::string restore_filename;
 
+  unsigned int save_size = 0;
+  // allocate a buffer for writing
+  unsigned char put_buffer[256];
+
   // parse options
   int opt = 1;
   while (opt != -1){
@@ -336,12 +340,91 @@ int main(int argc, char **argv){
 
   // retrieve the card status, hexdump it if debug is on, then print the firmware version
   unsigned char * card_status = get_status();
+  bool is_original_adapter = false;
   if (card_status && debug){hexdump(card_status, 8);}
-  std::cout << "NDS Adapter+ firmware version " << (card_status[7] * 256 + card_status[6]) << " detected." << std::endl;
+  // xx aa 55 aa  55 aa 55 aa
+  if (card_status[1] == 0xaa && card_status[2] == 0x55
+      && card_status[3] == 0xaa && card_status[4] == 0x55
+      && card_status[5] == 0xaa && card_status[6] == 0x55
+      && card_status[7] == 0xaa) {
+    std::cout << "Original NDS Adapter detected." << std::endl;
+    is_original_adapter = true;
+  } else {
+    std::cout << "NDS Adapter+ firmware version " << (card_status[7] * 256 + card_status[6]) << " detected." << std::endl;
+  }
 
   // if no card is plugged in, print this and abort
   if (!card_status || (card_status[0] == 0xFF && card_status[1] == 0xFF)){
     return drop_adapter("No card is plugged in.");
+  }
+
+  if (is_original_adapter) {
+    //calculate and print save size
+    switch (card_status[0]){
+    case 0x01:
+      save_size = 512;
+      printf("Detected save: 0.5 KiB EEPROM\n");
+      break;
+    case 0x02:
+      save_size = 8192;
+      printf("Detected save: 8 KiB EEPROM\n");
+      break;
+    case 0x03:
+      save_size = 262144;
+      printf("Detected save: 256 KiB EEPROM\n");
+      break;
+    case 0x12:
+      save_size = 65536;
+      printf("Detected save: 64 KiB EEPROM\n");
+      break;
+    default:
+      save_size = 1 << card_status[0x04];
+      printf("Detected save: %i KiB FLASH\n", save_size >> 10);
+      break;
+    }
+    
+    if (forced_size > 0){
+      if (forced_size < 32) {
+        save_size = 1<<forced_size;
+      } else {
+        save_size = forced_size;
+      }
+      printf("Overriding to: %i KiB\n", save_size >> 10);
+    }
+    if (backup){
+      printf("Backing up savegame...\n");
+      std::ofstream backup_file(backup_filename.c_str(), std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
+      if (!backup_file.good()){return drop_adapter("Could not open file for backup :-(");}
+      for (unsigned int i = 0; i < save_size; i += 512){
+        unsigned char * data = get_save(card_status[0], i);
+        if (!data){return drop_adapter("Savegame read error mid-operation!");}
+        backup_file.write((const char*)data, 512);
+        if (!backup_file.good()){return drop_adapter("File write error mid-operation!");}
+        printf("\r%i%%...", (i*100) / save_size);
+        fflush(stdout);
+        usleep(1000);//sleep for 1ms - too fast makes the adapter unhappy :-(
+      }
+      printf("\r100%%   \nBackup to %s completed!\n", backup_filename.c_str());
+    }
+    // do a restore if requested - abort if anything goes wrong
+    if (restore){
+      printf("Restoring savegame...\n");
+      std::ifstream restore_file(restore_filename.c_str(), std::ifstream::in | std::ifstream::binary);
+      if (!restore_file.good()){return drop_adapter("Could not open file for restoring :-(");}
+      for (unsigned int i = 0; i < save_size; i += 256){
+        restore_file.read((char*)put_buffer, 256);
+        if (!restore_file.good()){return drop_adapter("File read error mid-operation!");}
+        int ret = put_save(card_status[0], i, put_buffer);
+        if (!ret){return drop_adapter("Savegame write error mid-operation!");}
+        printf("\r%i%%...", (i*100) / save_size);
+        fflush(stdout);
+        usleep(1000);//sleep for 1ms - too fast makes the adapter unhappy :-(
+      }
+      printf("\r100%%   \nRestore from file %s completed!\n", restore_filename.c_str());
+    }
+    libusb_release_interface(handle, 0);
+    libusb_close(handle);
+    return 0;
   }
 
   // prepare the card, abort if anything goes awry.
@@ -374,7 +457,6 @@ int main(int argc, char **argv){
   }
 
   //calculate and print save size
-  unsigned int save_size = 0;
   switch (card_status[0]){
     case 0x01:
       save_size = 512;
@@ -415,9 +497,6 @@ int main(int argc, char **argv){
     }
     printf("\r100%%   \nBackup to %s completed!\n", backup_filename.c_str());
   }
-
-  // allocate a buffer for writing
-  unsigned char put_buffer[256];
 
   // do a wipe if requested - abort if anything goes wrong
   if (wipe){
