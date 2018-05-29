@@ -1,4 +1,4 @@
-This version of ndsplus detects the original version of the adapter.\
+This version of ndsplus detects the original version of the adapter.
 
 ![Original EMS NDS Adaptor](original-nds-adaptor.jpg?raw=true "Original EMS NDS Adaptor")
 
