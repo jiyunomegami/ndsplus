@@ -366,19 +366,19 @@ int main(int argc, char **argv){
     switch (card_status[0]){
     case 0x01:
       save_size = 512;
-      printf("Detected save: 0.5 KiB EEPROM\n");
+      printf("Detected save: 0.5 KiB FLASH\n");
       break;
     case 0x02:
       save_size = 8192;
-      printf("Detected save: 8 KiB EEPROM\n");
+      printf("Detected save: 8 KiB FLASH\n");
       break;
     case 0x03:
       save_size = 262144;
-      printf("Detected save: 256 KiB EEPROM\n");
+      printf("Detected save: 256 KiB FLASH\n");
       break;
     case 0x12:
       save_size = 65536;
-      printf("Detected save: 64 KiB EEPROM\n");
+      printf("Detected save: 64 KiB FLASH\n");
       break;
     default:
       save_size = 1 << card_status[0x04];
@@ -463,15 +463,15 @@ int main(int argc, char **argv){
   switch (card_status[0]){
     case 0x01:
       save_size = 512;
-      printf("Detected save: 0.5 KiB EEPROM\n");
+      printf("Detected save: 0.5 KiB FLASH\n");
       break;
     case 0x02:
       save_size = 8192;
-      printf("Detected save: 8 KiB EEPROM\n");
+      printf("Detected save: 8 KiB FLASH\n");
       break;
     case 0x12:
       save_size = 65536;
-      printf("Detected save: 64 KiB EEPROM\n");
+      printf("Detected save: 64 KiB FLASH\n");
       break;
     default:
       save_size = 1 << card_status[0x04];
