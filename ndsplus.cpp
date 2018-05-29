@@ -359,6 +359,9 @@ int main(int argc, char **argv){
   }
 
   if (is_original_adapter) {
+    if (card_status[0] == 0xFF){
+      return drop_adapter("No card is plugged in.");
+    }
     //calculate and print save size
     switch (card_status[0]){
     case 0x01:
